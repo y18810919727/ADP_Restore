@@ -13,21 +13,23 @@ import torch
 
 import torch
 import os
-from toolbox.tool_train_main import tool_train
+from toolbox.tool_train_main import tool_train, tools_test
 from adp.img_generator import ImageGenerator
+import util
 
+#os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
 
 def main(config):
-    if config.tool_train_mode:
+    if config.tool_train_mode is 1:
         tool_train(config)
         return
+    elif config.tool_train_mode is 2:
+        tools = util.load_tools(config.tool_save_dir, config.device)
+        tools_test(tools, config)
+        return
     else:
-        tools = []
-        for tool_id in range(12):
-            tools.append(
-                torch.load(os.path.join(config.tool_save_dir, 'tool%02i.pkd' % tool_id))
-            )
+        tools = util.load_tools(config.tool_save_dir, config.device)
     restorer = ImageRestore(tools, config)
     if config.train_mode == 0 or config.train_mode == 2:
         train_img_generator = ImageGenerator(train_dir=config.train_dir)
@@ -37,15 +39,11 @@ def main(config):
         # TODO test restorer
         pass
 
-
-
-
-
-
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='ADP-Restore')
-    parser.add_argument('--tool_train_mode', type=bool, default=False)
+    # 0 : nothing, 1: train tools, 2: test tools
+    parser.add_argument('--tool_train_mode', type=int, default=0)
     parser.add_argument('--tool_train_data_dir', type=str, default='data/tool_data/train')
     parser.add_argument('--tool_validation_data_dir', type=str, default='data/tool_data/validation')
     parser.add_argument('--tool_train_test_dir', type=str, default='data/tool_data/test')

@@ -12,7 +12,7 @@ from tensorboardX import SummaryWriter
 import torch
 import tensorflow as tf
 
-#os.environ["CUDA_VISIBLE_DEVICES"]='0'
+#os.environ["CUDA_VISIBLE_DEVICES"]=''
 #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
 gpu_options = tf.GPUOptions(allow_growth=True)
 
@@ -54,7 +54,7 @@ class TfBoxesTest(object):
         for index in range(12):
             # img shape N * bs * H * W * channels
             log_dir = './logs/'
-            data = h5extract(os.path.join(data_path, '%itrain.h5' % index))
+            data = h5extract(os.path.join(data_path, 'validation.h5'))
             imgs_in = data['data'].transpose(0,2,3,1)
             imgs_gt = data['label'].transpose(0,2,3,1)
             imgs_out = np.copy(imgs_in)
@@ -64,7 +64,7 @@ class TfBoxesTest(object):
 
 
             event_id = util.cur_time_str()
-            writer = SummaryWriter(logdir='./logs/tool/tf_tool%02i/'%index+event_id+'/')
+            writer = SummaryWriter(logdir='./logs/tool/tf_tool_mix%02i/'%index+event_id+'/')
 
             for img_id in range(imgs_gt.shape[0]):
                 img_in = imgs_in[img_id:img_id+1, ...]
@@ -110,5 +110,5 @@ with tf.Session(config=tf.ConfigProto(log_device_placement=True,
     tf_box_test = TfBoxesTest(
         toolbox_path='/home1/jupyter_data/Yuanzhaolin/remote_host/ADP_Restore/toolbox/')
     tf_box_test.test_data(
-        '/home1/jupyter_data/Yuanzhaolin/remote_host/ADP_Restore/data/tool_data/validation/')
+        '/home1/jupyter_data/Yuanzhaolin/remote_host/ADP_Restore/data/validation/')
 

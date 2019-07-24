@@ -111,7 +111,7 @@ def test_net(net, validation_data, critic, config):
 
 
 def tool_train(config):
-    for tool_id in range(0,12):
+    for tool_id in range(6,8):
         # 4 tools in one kind of noisy group.  0, 1 tools for mild noise, 2, 3 tools for the severe.
         net = Net3() if tool_id % 4 < 2 else Net8()
         train_data = h5extract(
@@ -126,8 +126,62 @@ def tool_train(config):
             )
         )
         net.to(config.device)
-        net = nn.DataParallel(net, device_ids=[0,1,2,3])
+        #net = nn.DataParallel(net, device_ids=[0, 1, 2])
         net_train(net, train_data, validation_data, config, tool_id)
 
+
+def tools_test(tools, config):
+
+    for tool_id, tool in enumerate(tools):
+
+        event_id = util.cur_time_str()
+        if 'tool_data' in config.tool_validation_data_dir:
+            test_data = h5extract(
+                os.path.join(
+                    config.tool_validation_data_dir, str(tool_id)+'train.h5'
+                )
+            )
+            writer_name = './logs/tool/torch_test%02i/'%tool_id+event_id+'/'
+
+        else:
+            test_data = h5extract(
+                os.path.join(
+                    config.tool_validation_data_dir, 'validation.h5'
+                )
+            )
+            writer_name = './logs/tool/torch_test_mix%02i/'%tool_id+event_id+'/'
+        tool.to(config.device)
+
+        writer = SummaryWriter(logdir=writer_name)
+
+        test_x, test_y, test_y_estimate, test_loss, test_psnr, base_psnr = test_net(tool, test_data,
+                                                                                    torch.nn.MSELoss(),
+                                                                                    config)
+
+        for write_iter in range(50000):
+            writer.add_scalar('data/test_loss', test_loss, write_iter)
+            writer.add_scalar('data/test_psnr', test_psnr, write_iter)
+            writer.add_scalar('data/base_psnr', float(base_psnr), write_iter)
+            writer.add_scalar('data/psnr_increment', float(test_psnr) - float(base_psnr), write_iter)
+
+        cnt = config.tool.visual_cnt
+        # visual_img = torch.cat(
+        #     (test_x[0:cnt], test_y_estimate[0:cnt], test_y[0:cnt]),
+        #     dim=0
+        # )
+        # visual_img = vutils.make_grid(visual_img, nrow=cnt)
+        # writer.add_image('img/validation', visual_img, step + epoch*len(loader))
+        # writer.add_images('img/validation_in', test_x[:cnt])
+        # writer.add_images('img/validation_out', test_y_estimate[:cnt])
+        # writer.add_images('img/validation_gt', test_y[:cnt])
+        for img_id in range(cnt):
+            writer.add_image('img/%02iin' % img_id, test_x[img_id],
+                             0)
+            writer.add_image('img/%02iout' % img_id, test_y_estimate[img_id],
+                             0)
+            writer.add_image('img/%02igt' % img_id, test_y[img_id],
+                             0)
+        print('Tool: %02i, psnr: %.02f, psnr increment: %.02f' % (
+            tool_id, test_psnr, float(test_psnr) - float(base_psnr)))
 
 

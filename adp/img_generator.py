@@ -91,7 +91,8 @@ class ImageGenerator(object):
 
 if __name__ == '__main__':
     #img_generator = ImageGenerator('../data/tool_data/validation')
-    img_generator = ImageGenerator('../data/validation/')
+    #img_generator = ImageGenerator('../data/validation/')
+    img_generator = ImageGenerator('../data/train/')
 
     print(img_generator.generate_all()[0].shape)
     print(img_generator)

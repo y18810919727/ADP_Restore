@@ -36,12 +36,16 @@ class MyDataset(data.Dataset):
     def __len__(self):
         return self.data.shape[0]
 
+
 def psnr_cal(im_input, im_label):
+    if len(im_input.shape) == 3:
+        im_input = np.expand_dims(im_input, axis=0)
+        im_label = np.expand_dims(im_label, axis=0)
     loss = (im_input - im_label) ** 2
     eps = 1e-10
-    loss_value = loss.mean() + eps
-    psnr = 10 * math.log10(1.0 / loss_value)
-    return psnr
+    loss_value = loss.mean(axis=(1,2,3)) + eps
+    psnr = 10 * np.log10(1.0 / loss_value)
+    return psnr.mean()
 
 def cur_time_str():
     return time.strftime("%b_%d_%H:%M:%S_%Y", time.localtime())
@@ -59,3 +63,22 @@ def visual_img(img_array, save_dir=CommonConfig.tmp_dir):
         img_array
     )
 
+def load_tools(tools_path, device):
+
+    tools = []
+    if 'tf2torch' in tools_path:
+        import imp
+        for tool_id in range(12):
+            MainModel = imp.load_source('MainModel', os.path.join(tools_path, 'tool%02i.py' % (tool_id+1)))
+            model_path = os.path.join(tools_path, 'tool%02i.pth' % (tool_id+1))
+            model = torch.load(model_path)
+            model.to(device)
+            model.eval()
+            tools.append(model)
+
+    else:
+        for tool_id in range(12):
+            tools.append(
+                torch.load(os.path.join(tools_path, 'tool%02i.pkd' % tool_id))
+            )
+    return tools

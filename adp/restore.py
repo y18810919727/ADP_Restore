@@ -42,6 +42,9 @@ class ImageRestore(object):
         self.max_reward_sum = -np.Inf
         self.event_id = util.cur_time_str()
 
+        # endregion
+
+
         if self.train_mode >= 1:
             self.load()
 
@@ -232,6 +235,7 @@ class ImageRestore(object):
             self.max_reward_sum = sum_reward
             self.save()
 
+    # 目前还没用到
     def restore_test(self, imgs_input):
         imgs = torch.FloatTensor(imgs_input).to(self.config.device)
         self.episode = {
