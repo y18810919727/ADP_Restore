@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding:utf8 -*-
 import numpy as np
+import random
 import math
 import os
 import json
@@ -25,6 +26,8 @@ class ImageGenerator(object):
         self.img_shape = self.data[0].shape
 
     def update_file(self):
+        if self.file_index == self.train_max - 1:
+            random.shuffle(self.train_list)
         self.file_index = (self.file_index+1) % self.train_max
         self.data_index = 0
         h5_data = h5extract(self.train_list[self.file_index])
