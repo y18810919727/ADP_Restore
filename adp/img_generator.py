@@ -5,6 +5,7 @@ import random
 import math
 import os
 import json
+import util
 
 import torch
 
@@ -40,21 +41,33 @@ class ImageGenerator(object):
             self.data = self.data[id_list]
             self.label = self.label[id_list]
 
-    def generate_images(self, num):
+    def generate_images(self, num, del_smooth=False):
         cur_cnt = 0
         res_data = np.zeros((num, ) + self.img_shape) # tuple + tuple = tuple
         res_label = np.zeros((num, ) + self.img_shape)
 
         while cur_cnt < num:
             tmp_cnt = min(self.data_len - self.data_index, num - cur_cnt)
-            res_data[cur_cnt:cur_cnt + tmp_cnt] = self.data[self.data_index: self.data_index + tmp_cnt]
-            res_label[cur_cnt:cur_cnt + tmp_cnt] = self.label[self.data_index: self.data_index + tmp_cnt]
-            cur_cnt += tmp_cnt
+            legal_cnt = tmp_cnt
+            tmp_data = self.data[self.data_index: self.data_index + tmp_cnt]
+            tmp_label = self.label[self.data_index: self.data_index + tmp_cnt]
             self.data_index += tmp_cnt
+
+            if del_smooth:
+                psnr = util.psnr_cal(tmp_data, tmp_label, mean=False)
+                legal_ids = np.where(psnr < 50)
+                tmp_data = tmp_data[legal_ids]
+                tmp_label = tmp_label[legal_ids]
+                legal_cnt = tmp_label.shape[0]
+            res_data[cur_cnt:cur_cnt + legal_cnt] = tmp_data
+            res_label[cur_cnt:cur_cnt + legal_cnt] = tmp_label
+            cur_cnt += legal_cnt
             if self.data_index >= self.data_len:
                 self.update_file()
             if cur_cnt >= num:
                 break
+        if del_smooth:
+            assert np.sum(util.psnr_cal(res_data, res_label, mean=False) > 50) == 0
         return res_data, res_label
 
     def generate_all(self):

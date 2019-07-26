@@ -5,7 +5,6 @@ import math
 import os
 import json
 from config import get_config
-from adp.restore import ImageRestore
 
 import torch
 
@@ -21,6 +20,13 @@ import util
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
 
 def main(config):
+
+    if 'ft' in config.event_identification:
+        from adp.restore_ft import ImageRestoreFt as ImageRestore
+    else:
+        from adp.restore import ImageRestore
+
+    print('Restorer Class:', ImageRestore.__name__)
     if config.tool_train_mode is 1:
         tool_train(config)
         return
@@ -35,8 +41,28 @@ def main(config):
         train_img_generator = ImageGenerator(train_dir=config.train_dir)
         validation_img_generator = ImageGenerator(train_dir=config.validation_dir, shuffle=False)
         restorer.train(train_img_generator, validation_img_generator)
+    elif config.test_dataset in ['mild', 'moderate', 'severe']:
+        data_in = util.pngs_dir_read(os.path.join(
+            config.test_dir, config.test_dataset+'_in')
+        )
+        data_gt = util.pngs_dir_read(os.path.join(
+            config.test_dir, config.test_dataset+'_gt')
+        )
+        names = sorted([name for name in os.listdir(os.path.join(
+            config.test_dir, config.test_dataset+'_in')
+        )])
+        names = list(
+            map(
+                lambda x: x[:-7],
+                names
+            )
+        )
+        result_dir = os.path.join(config.result_dir, config.test_dataset) if config.is_save else None
+        if result_dir is not None and not os.path.exists(result_dir):
+            os.makedirs(result_dir)
+        restorer.test(data_in, data_gt, names, result_dir)
     else:
-        # TODO test restorer
+        # todo
         pass
 
 if __name__ == '__main__':
@@ -51,6 +77,11 @@ if __name__ == '__main__':
     parser.add_argument('--train_dir', type=str, default='data/train')
     parser.add_argument('--validation_dir', type=str, default='data/validation')
     parser.add_argument('--test_dir', type=str, default='data/test')
+    parser.add_argument('--test_dataset', type=str, default='moderate',
+                        help='select a dataset from mild/moderate/severe')
+
+    parser.add_argument('--result_dir', type=str, default='data/result')
+    parser.add_argument('--is_save', type=bool, default=False)
 
     parser.add_argument('--restorer_save_dir', type=str, default='model/restorer')
     parser.add_argument('--event_identification', type=str, default='')
@@ -61,6 +92,7 @@ if __name__ == '__main__':
 
 
     parser.add_argument('--device', type=str, default='cuda', help='cuda or cpu')
+    parser.add_argument('--gpu_id', type=list, default=[0, 1, 2, 3], help='Available gpy id')
     config = parser.parse_args()
     if not os.path.exists('./logs'):
         os.makedirs('./logs')

@@ -2,6 +2,7 @@
 # -*- coding:utf8 -*-
 import time
 import numpy as np
+import cv2
 import math
 import os
 import json
@@ -37,7 +38,7 @@ class MyDataset(data.Dataset):
         return self.data.shape[0]
 
 
-def psnr_cal(im_input, im_label):
+def psnr_cal(im_input, im_label, mean=True):
     if len(im_input.shape) == 3:
         im_input = np.expand_dims(im_input, axis=0)
         im_label = np.expand_dims(im_label, axis=0)
@@ -45,7 +46,10 @@ def psnr_cal(im_input, im_label):
     eps = 1e-10
     loss_value = loss.mean(axis=(1,2,3)) + eps
     psnr = 10 * np.log10(1.0 / loss_value)
-    return psnr.mean()
+    if mean:
+        return psnr.mean()
+    else:
+        return psnr
 
 def cur_time_str():
     return time.strftime("%b_%d_%H:%M:%S_%Y", time.localtime())
@@ -82,3 +86,19 @@ def load_tools(tools_path, device):
                 torch.load(os.path.join(tools_path, 'tool%02i.pkd' % tool_id))
             )
     return tools
+
+def pngs_dir_read(pngs_path):
+
+    path_in = [os.path.join(pngs_path, name) for name in os.listdir(pngs_path)]
+    path_in.sort()
+    imgs = load_imgs(path_in)
+    return imgs
+
+def load_imgs(list_in, size = 63):
+    img_num = len(list_in)
+    imgs = np.zeros([img_num, size, size, 3])
+    for k in range(img_num):
+        imgs[k, ...] = cv2.imread(list_in[k]) / 255.
+    imgs = imgs.transpose([0, 3, 1, 2])
+    return imgs
+

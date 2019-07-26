@@ -31,6 +31,7 @@ class RestoreConfig(object):
     test_batch_size = 32
     stop_step = 3
     epoch = 10
+    del_smooth = True
 
     max_step = 100000
     gamma = 0.95
@@ -51,7 +52,12 @@ class RestoreConfig(object):
     log_period = 100
     save_period = 2000
 
-    visual_cnt = 10
+    visual_cnt = 30
+
+    # tools fine-tune
+    tools_ft_period = 20
+    tools_ft_lr_decay_period = 400
+    tools_ft_lr_decay = 0.99
 
 class ExpConfig(CommonConfig):
     tool = ToolConfig

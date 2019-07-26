@@ -112,3 +112,28 @@ class Actor(Module):
 
         return self.policy_lstm(fm, hidden_state, last_action)
 
+
+class ActorNoAttention(Actor):
+    def __init__(self, config):
+        super(ActorNoAttention, self).__init__(config)
+        self.actor_linear2 = nn.Linear(config.RestoreConfig.actor_hidden_size, config.tool.tools_num+1)
+        self.config = config
+
+    def policy_lstm(self, fm, hidden_state, last_action):
+        h, c = hidden_state
+        fm = torch.cat([fm, last_action.detach()], dim=1)
+        fm = fm.unsqueeze(0)
+
+        if h is None:
+            out_fm, (h, c) = self.actor_lstm(fm)
+        else:
+            out_fm, (h, c) = self.actor_lstm(fm, (h, c))
+
+        out_fm = out_fm.squeeze(dim=0)
+        tools_weight = self.actor_linear2(
+            F.relu(self.actor_linear1(out_fm))
+        )
+        attention = F.softmax(tools_weight[:, :self.config.tool.tools_num], dim=1)
+        margin = torch.sigmoid(tools_weight[:, -1:])*2
+        attention = attention * margin
+        return attention, (h, c)
