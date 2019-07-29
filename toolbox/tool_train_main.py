@@ -116,7 +116,7 @@ def tool_train(config):
         net = Net3() if tool_id % 4 < 2 else Net8()
         train_data = h5extract(
             os.path.join(
-             config.tool_train_data_dir , str(tool_id)+'train.h5'
+             config.tool_train_data_dir, str(tool_id)+'train.h5'
             )
         )
 
@@ -185,3 +185,33 @@ def tools_test(tools, config):
             tool_id, test_psnr, float(test_psnr) - float(base_psnr)))
 
 
+def load_tools_tf2torch(tools_path, device):
+
+    tools = []
+    import imp
+    for tool_id in range(12):
+        MainModel = imp.load_source('MainModel', os.path.join(tools_path, 'tool%02i.py' % (tool_id+1)))
+        model_path = os.path.join(tools_path, 'tool%02i.pth' % (tool_id+1))
+        model = torch.load(model_path)
+        model.to(device)
+        if device.type == 'cuda':
+            model= torch.nn.DataParallel(model)
+        model.eval()
+        tools.append(model)
+
+    return tools
+
+
+def load_tools_torch(tools_path, device):
+
+    tools = []
+    for tool_id in range(12):
+        net = Net3() if tool_id % 4 < 2 else Net8()
+        net.load_state_dict(
+            torch.load(os.path.join(tools_path, 'tool%02i.pkl' % tool_id))
+        )
+        net.to(device)
+        if device.type == 'cuda':
+            net = torch.nn.DataParallel(net)
+        tools.append(net)
+    return tools

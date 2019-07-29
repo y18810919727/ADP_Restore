@@ -38,6 +38,17 @@ class MyDataset(data.Dataset):
         return self.data.shape[0]
 
 
+
+def psnr_cal_single(im_input, im_label):
+    loss = (im_input - im_label) ** 2
+    eps = 1e-10
+    loss_value = loss.mean() + eps
+    psnr = 10 * math.log10(1.0 / loss_value)
+    return psnr
+
+def psnr_cal2(im_input, im_label, mean=True):
+    return np.array([psnr_cal_single(im_input[i], im_label[i]) for i in range(im_input.shape[0])]).mean()
+
 def psnr_cal(im_input, im_label, mean=True):
     if len(im_input.shape) == 3:
         im_input = np.expand_dims(im_input, axis=0)
@@ -82,9 +93,10 @@ def load_tools(tools_path, device):
 
     else:
         for tool_id in range(12):
-            tools.append(
-                torch.load(os.path.join(tools_path, 'tool%02i.pkd' % tool_id))
-            )
+            tool = torch.load(os.path.join(tools_path, 'tool%02i.pkd' % tool_id))
+            if type(tool) is torch.nn.DataParallel:
+                tool = tool.module
+            tools.append(tool)
     return tools
 
 def pngs_dir_read(pngs_path):

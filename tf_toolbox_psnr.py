@@ -12,7 +12,7 @@ from tensorboardX import SummaryWriter
 import torch
 import tensorflow as tf
 
-#os.environ["CUDA_VISIBLE_DEVICES"]='0'
+os.environ["CUDA_VISIBLE_DEVICES"]=''
 #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
 gpu_options = tf.GPUOptions(allow_growth=True)
 

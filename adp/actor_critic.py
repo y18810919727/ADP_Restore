@@ -137,3 +137,27 @@ class ActorNoAttention(Actor):
         margin = torch.sigmoid(tools_weight[:, -1:])*2
         attention = attention * margin
         return attention, (h, c)
+
+class ActorNoisy(Actor):
+    def __init__(self, config):
+        from common.layers import NoisyLinear
+        super(ActorNoisy, self).__init__(config)
+
+        self.actor_linear1 = NoisyLinear(config.RestoreConfig.lstm_hidden, config.RestoreConfig.actor_hidden_size,
+                                         config.device, std_init=0.3)
+        self.actor_linear2 = NoisyLinear(config.RestoreConfig.actor_hidden_size, config.tool.tools_num,
+                                         config.device, std_init=0.3)
+        self.config = config
+
+class ActorNoAttentionNoisy(ActorNoAttention):
+    def __init__(self, config):
+        from common.layers import NoisyLinear
+        super(ActorNoAttentionNoisy, self).__init__(config)
+
+        self.actor_linear1 = NoisyLinear(config.RestoreConfig.lstm_hidden, config.RestoreConfig.actor_hidden_size,
+                                         config.device, std_init=0.3)
+        self.actor_linear2 = NoisyLinear(config.RestoreConfig.actor_hidden_size, config.tool.tools_num+1,
+                                         config.device, std_init=0.3)
+        self.config = config
+
+

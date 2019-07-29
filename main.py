@@ -12,7 +12,7 @@ import torch
 
 import torch
 import os
-from toolbox.tool_train_main import tool_train, tools_test
+from toolbox.tool_train_main import tool_train, tools_test, load_tools_tf2torch, load_tools_torch
 from adp.img_generator import ImageGenerator
 import util
 
@@ -23,6 +23,8 @@ def main(config):
 
     if 'ft' in config.event_identification:
         from adp.restore_ft import ImageRestoreFt as ImageRestore
+    elif 'nl' in config.event_identification:
+        from adp.restore_nl import ImageRestoreNl as ImageRestore
     else:
         from adp.restore import ImageRestore
 
@@ -30,18 +32,25 @@ def main(config):
     if config.tool_train_mode is 1:
         tool_train(config)
         return
-    elif config.tool_train_mode is 2:
-        tools = util.load_tools(config.tool_save_dir, config.device)
+    else:
+        if config.tool_type == 'tf2torch':
+            tools = load_tools_tf2torch(config.tools_tf2torch_dir, config.device)
+        else:
+            tools = load_tools_torch(config.tools_torch_dir, config.device)
+
+    # test tools and terminate
+    if config.tool_train_mode is 2:
         tools_test(tools, config)
         return
-    else:
-        tools = util.load_tools(config.tool_save_dir, config.device)
+
     restorer = ImageRestore(tools, config)
     if config.train_mode == 0 or config.train_mode == 2:
         train_img_generator = ImageGenerator(train_dir=config.train_dir)
         validation_img_generator = ImageGenerator(train_dir=config.validation_dir, shuffle=False)
+        restorer.train_mode_set()
         restorer.train(train_img_generator, validation_img_generator)
     elif config.test_dataset in ['mild', 'moderate', 'severe']:
+        restorer.eval_mode_set()
         data_in = util.pngs_dir_read(os.path.join(
             config.test_dir, config.test_dataset+'_in')
         )
@@ -73,7 +82,6 @@ if __name__ == '__main__':
     parser.add_argument('--tool_train_data_dir', type=str, default='data/tool_data/train')
     parser.add_argument('--tool_validation_data_dir', type=str, default='data/tool_data/validation')
     parser.add_argument('--tool_train_test_dir', type=str, default='data/tool_data/test')
-    parser.add_argument('--tool_save_dir', type=str, default='model/tools')
     parser.add_argument('--train_dir', type=str, default='data/train')
     parser.add_argument('--validation_dir', type=str, default='data/validation')
     parser.add_argument('--test_dir', type=str, default='data/test')
@@ -89,10 +97,12 @@ if __name__ == '__main__':
 
     # 0: retrain, 1: test 2: train based on the last checkpoint
     parser.add_argument('--train_mode', type=int, default=0)
+    #  tf2torch, 1: torch(training by ourself)
+    parser.add_argument('--tool_type', type=str, default='torch', help='tf2torch or torch')
 
 
     parser.add_argument('--device', type=str, default='cuda', help='cuda or cpu')
-    parser.add_argument('--gpu_id', type=list, default=[0, 1, 2, 3], help='Available gpy id')
+    parser.add_argument('--gpu_id', type=list, default=[0, 1, 2, 3], help='Available gpu id')
     config = parser.parse_args()
     if not os.path.exists('./logs'):
         os.makedirs('./logs')

@@ -9,6 +9,8 @@ global global_config
 
 class CommonConfig(object):
     tmp_dir = 'tmp/'
+    tools_tf2torch_dir = 'toolbox/tf2torch/'
+    tools_torch_dir = 'model/tools/'
 
 
 

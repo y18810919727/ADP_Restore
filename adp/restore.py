@@ -19,10 +19,21 @@ from adp.fusion import fuse_imgs
 class ImageRestore(object):
     def __init__(self, tools, config):
 
+        """
+        naive ： original version
+        nl ： add noise layer in policy net
+        na ： No attention
+
+        """
         if 'naive' in config.event_identification:
             from adp.actor_critic import Actor, Critic
+        elif 'nl' in config.event_identification and 'na' in config.event_identification:
+            from adp.actor_critic import ActorNoAttentionNoisy as Actor, Critic
+        elif 'nl' in config.event_identification:
+            from adp.actor_critic import ActorNoisy as Actor, Critic
         elif 'na' in config.event_identification:
             from adp.actor_critic import ActorNoAttention as Actor, Critic
+
         print('Policy_class: ', Actor.__name__)
         print('Critic_class: ', Critic.__name__)
         self.config = config
@@ -63,6 +74,9 @@ class ImageRestore(object):
 
         for tool_index in range(self.config.tool.tools_num):
             self.tools[tool_index].to(config.device)
+            if self.config.device.type == 'cuda':
+                self.tools[tool_index] = nn.DataParallel(self.tools[tool_index],
+                                                         device_ids=self.config.gpu_id)
 
     def train(self, train_img_generator, validation_img_generator):
 
@@ -324,6 +338,18 @@ class ImageRestore(object):
         # self.episode['values'].append(self.critic(imgs, hidden_state_value, last_action)[0])
         return imgs
 
+    def train_mode_set(self):
+        self.actor.train()
+        self.critic.train()
+        for tool in self.tools:
+            tool.train()
+
+    def eval_mode_set(self):
+        self.actor.eval()
+        self.critic.eval()
+        for tool in self.tools:
+            tool.eval()
+
     def save(self):
         state = {
             'critic': self.critic.state_dict(),
@@ -364,18 +390,16 @@ class ImageRestore(object):
         self.train_generator_index = ckpt['train_generator_index']
         self.max_reward_sum = ckpt['max_reward_sum']
 
-        if 'tool%i' % 0 in ckpt.keys():
-            for tool_index in range(self.config.tool.tools_num):
-                self.tools[tool_index].load_state_dict(ckpt['tool%i'%tool_index])
-                if self.config.device.type is 'cuda':
-                    self.tools[tool_index] = nn.DataParallel(self.tools[tool_index],
-                                                             device_ids=self.config.gpu_id)
+        # if 'tool%i' % 0 in ckpt.keys():
+        #     for tool_index in range(self.config.tool.tools_num):
+        #         self.tools[tool_index].load_state_dict(ckpt['tool%i'%tool_index])
+        #         if self.config.device.type == 'cuda':
+        #             self.tools[tool_index] = nn.DataParallel(self.tools[tool_index],
+        #                                                      device_ids=self.config.gpu_id)
 
     def test(self, data_in, data_gt, names, result_dir):
         base_psnr = util.psnr_cal(data_in, data_gt)
         data_len = data_in.shape[0]
-
-
         imgs_in_cpu = []
         imgs_gt_cpu = []
         imgs_out_cpu = [[] for _ in range(self.stop_step)]
@@ -449,7 +473,7 @@ class ImageRestore(object):
         print('Final result:')
 
         for m in range(self.stop_step):
-            print('Weight %i: ' % m+1, test_actions[m])
+            print('Weight %d:' % (m+1), test_actions[m])
         for m in range(self.stop_step):
             print(
                 ('reward' + str(m + 1) + ': %.4f, psnr' + str(m + 1) + ': %.4f' +
