@@ -34,9 +34,9 @@ def main(config):
         return
     else:
         if config.tool_type == 'tf2torch':
-            tools = load_tools_tf2torch(config.tools_tf2torch_dir, config.device)
+            tools = load_tools_tf2torch(config.tools_tf2torch_dir, config)
         else:
-            tools = load_tools_torch(config.tools_torch_dir, config.device)
+            tools = load_tools_torch(config.tools_torch_dir, config)
 
     # test tools and terminate
     if config.tool_train_mode is 2:
@@ -49,27 +49,36 @@ def main(config):
         validation_img_generator = ImageGenerator(train_dir=config.validation_dir, shuffle=False)
         restorer.train_mode_set()
         restorer.train(train_img_generator, validation_img_generator)
-    elif config.test_dataset in ['mild', 'moderate', 'severe']:
-        restorer.eval_mode_set()
-        data_in = util.pngs_dir_read(os.path.join(
-            config.test_dir, config.test_dataset+'_in')
-        )
-        data_gt = util.pngs_dir_read(os.path.join(
-            config.test_dir, config.test_dataset+'_gt')
-        )
-        names = sorted([name for name in os.listdir(os.path.join(
-            config.test_dir, config.test_dataset+'_in')
-        )])
-        names = list(
-            map(
-                lambda x: x[:-7],
-                names
+    elif config.test_dataset in ['mild', 'moderate', 'severe', 'all']:
+        def test_model_func():
+            print('Data set: ',config.test_dataset)
+            restorer.eval_mode_set()
+            data_in = util.pngs_dir_read(os.path.join(
+                config.test_dir, config.test_dataset+'_in')
             )
-        )
-        result_dir = os.path.join(config.result_dir, config.test_dataset) if config.is_save else None
-        if result_dir is not None and not os.path.exists(result_dir):
-            os.makedirs(result_dir)
-        restorer.test(data_in, data_gt, names, result_dir)
+            data_gt = util.pngs_dir_read(os.path.join(
+                config.test_dir, config.test_dataset+'_gt')
+            )
+            names = sorted([name for name in os.listdir(os.path.join(
+                config.test_dir, config.test_dataset+'_in')
+            )])
+            names = list(
+                map(
+                    lambda x: x[:-7],
+                    names
+                )
+            )
+            result_dir = os.path.join(config.result_dir, config.test_dataset) if config.is_save else None
+            if result_dir is not None and not os.path.exists(result_dir):
+                os.makedirs(result_dir)
+            restorer.test(data_in, data_gt, names, result_dir)
+        if config.test_dataset == 'all':
+            for ds_name in ['mild', 'moderate', 'severe']:
+                config.test_dataset = ds_name
+                test_model_func()
+        else:
+            test_model_func()
+
     else:
         # todo
         pass
@@ -86,7 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('--validation_dir', type=str, default='data/validation')
     parser.add_argument('--test_dir', type=str, default='data/test')
     parser.add_argument('--test_dataset', type=str, default='moderate',
-                        help='select a dataset from mild/moderate/severe')
+                        help='select a dataset from mild or moderate or severe or all')
 
     parser.add_argument('--result_dir', type=str, default='data/result')
     parser.add_argument('--is_save', type=bool, default=False)

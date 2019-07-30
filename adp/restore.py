@@ -25,14 +25,7 @@ class ImageRestore(object):
         na ： No attention
 
         """
-        if 'naive' in config.event_identification:
-            from adp.actor_critic import Actor, Critic
-        elif 'nl' in config.event_identification and 'na' in config.event_identification:
-            from adp.actor_critic import ActorNoAttentionNoisy as Actor, Critic
-        elif 'nl' in config.event_identification:
-            from adp.actor_critic import ActorNoisy as Actor, Critic
-        elif 'na' in config.event_identification:
-            from adp.actor_critic import ActorNoAttention as Actor, Critic
+        from adp.actor_critic import Actor, Critic
 
         print('Policy_class: ', Actor.__name__)
         print('Critic_class: ', Critic.__name__)
@@ -99,7 +92,7 @@ class ImageRestore(object):
             states = torch.stack(states, dim=0)  # (stop_step+1) *  batch_size *  C*H*W
             actions = torch.stack(actions, dim=1)  # batch_size * stop_step * tool_num
 
-            critic_loss, actor_loss = self.update_model(states, rewards, values, imgs)
+            critic_loss, actor_loss = self.update_model(states, actions, rewards, values, imgs)
 
             self.info_in_train['critic_loss'] += float(critic_loss.detach().cpu())
             self.info_in_train['actor_loss'] += float(actor_loss.detach().cpu())
@@ -117,7 +110,7 @@ class ImageRestore(object):
                     'actions': np.zeros((self.stop_step, self.config.tool.tools_num))
                 }
 
-    def update_model(self, states, rewards, values, imgs):
+    def update_model(self, states, actions, rewards, values, imgs):
         """
         update critic network and policy network by using HDP algorithm
         Prokhorov, D. V., & Wunsch, D. C. (1997). Adaptive critic designs. IEEE Transactions on Neural Networks, 8(5), 997–1007. https://doi.org/10.1109/72.623201
@@ -130,7 +123,7 @@ class ImageRestore(object):
         """
 
         # region actor update
-        actor_loss = -1 * self.cal_actor_loss(states, rewards, values)
+        actor_loss = -1 * self.cal_actor_loss(states, actions, rewards, values)
         self.actor_opt.zero_grad()
         actor_loss.backward(retain_graph=True)  # The loss of critic net will backward later.
         self.actor_opt.step()
@@ -144,14 +137,24 @@ class ImageRestore(object):
         # endregion
         return critic_loss, actor_loss
 
-    def cal_actor_loss(self, states, rewards, values):
+    def cal_actor_loss(self, states, actions, rewards, values):
+        """
+
+        :param states:
+        :param actions: bs * step * tool_num
+        :param rewards:
+        :param values:
+        :return:
+        """
         next_values = torch.cat(
             [values[:, 1:],
              torch.zeros(self.inference_batch_size, 1).to(self.config.device)],
             dim=1
         )
-        return (rewards + self.config.RestoreConfig.gamma * next_values).mean()
-
+        entropy = torch.distributions.Categorical(
+            torch.softmax(actions, dim=2)
+        ) if 'en' in self.config.event_identification else 0
+        return (rewards + self.config.RestoreConfig.gamma * next_values - entropy*0.05).mean()
 
     def cal_critic_loss(self, states, rewards, values):
         target_values = values[:, 1:].detach().clone()
@@ -208,7 +211,6 @@ class ImageRestore(object):
         loss_value = loss.mean(dim=(1,2,3)) + eps
         psnr = 10 * torch.log10(1.0 / loss_value)
         return psnr
-
 
     def model_validation(self, writer, validation_generator):
         sum_reward = 0
@@ -278,7 +280,6 @@ class ImageRestore(object):
                           self.info_in_train['actor_loss']/self.config.RestoreConfig.log_period, self.step)
         writer.add_scalar('data/train_reward_sum',
                           self.info_in_train['reward_sum']/self.config.RestoreConfig.log_period, self.step)
-
 
         train_attention = self.info_in_train['actions'] / self.config.RestoreConfig.log_period
         for step_index in range(self.stop_step):
@@ -390,12 +391,9 @@ class ImageRestore(object):
         self.train_generator_index = ckpt['train_generator_index']
         self.max_reward_sum = ckpt['max_reward_sum']
 
-        # if 'tool%i' % 0 in ckpt.keys():
-        #     for tool_index in range(self.config.tool.tools_num):
-        #         self.tools[tool_index].load_state_dict(ckpt['tool%i'%tool_index])
-        #         if self.config.device.type == 'cuda':
-        #             self.tools[tool_index] = nn.DataParallel(self.tools[tool_index],
-        #                                                      device_ids=self.config.gpu_id)
+        if 'tool%i' % 0 in ckpt.keys():
+            for tool_index in range(self.config.tool.tools_num):
+                self.tools[tool_index].load_state_dict(ckpt['tool%i' % tool_index])
 
     def test(self, data_in, data_gt, names, result_dir):
         base_psnr = util.psnr_cal(data_in, data_gt)

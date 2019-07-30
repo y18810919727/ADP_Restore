@@ -185,7 +185,7 @@ def tools_test(tools, config):
             tool_id, test_psnr, float(test_psnr) - float(base_psnr)))
 
 
-def load_tools_tf2torch(tools_path, device):
+def load_tools_tf2torch(tools_path, config):
 
     tools = []
     import imp
@@ -193,16 +193,15 @@ def load_tools_tf2torch(tools_path, device):
         MainModel = imp.load_source('MainModel', os.path.join(tools_path, 'tool%02i.py' % (tool_id+1)))
         model_path = os.path.join(tools_path, 'tool%02i.pth' % (tool_id+1))
         model = torch.load(model_path)
-        model.to(device)
-        if device.type == 'cuda':
-            model= torch.nn.DataParallel(model)
+        if config.device.type == 'cuda':
+            model= torch.nn.DataParallel(model.cuda())
         model.eval()
         tools.append(model)
 
     return tools
 
 
-def load_tools_torch(tools_path, device):
+def load_tools_torch(tools_path, config):
 
     tools = []
     for tool_id in range(12):
@@ -210,8 +209,5 @@ def load_tools_torch(tools_path, device):
         net.load_state_dict(
             torch.load(os.path.join(tools_path, 'tool%02i.pkl' % tool_id))
         )
-        net.to(device)
-        if device.type == 'cuda':
-            net = torch.nn.DataParallel(net)
         tools.append(net)
     return tools

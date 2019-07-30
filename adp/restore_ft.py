@@ -19,7 +19,7 @@ class ImageRestoreFt(ImageRestore):
         self.tools_scheduler = []
         self.tools_critic = torch.nn.MSELoss()
         for tool_id in range(config.tool.tools_num):
-            self.tools_opt.append(torch.optim.Adam(self.tools[tool_id].parameters(), lr=1e-5))
+            self.tools_opt.append(torch.optim.Adam(self.tools[tool_id].parameters(), lr=1e-4))
             self.tools_scheduler.append(
                 torch.optim.lr_scheduler.ExponentialLR(
                     self.tools_opt[-1], gamma=config.RestoreConfig.tools_ft_lr_decay))

@@ -11,6 +11,7 @@ import torch.nn as nn
 
 from torch.nn import functional as F
 from torch.nn import Module
+from common.layers import NoisyLinear
 
 
 class Critic(Module):
@@ -78,8 +79,20 @@ class Actor(Module):
         self.actor_lstm = nn.LSTM(input_size=config.RestoreConfig.feature_map_size+config.tool.tools_num,
                                   hidden_size=config.RestoreConfig.lstm_hidden
                                   )
-        self.actor_linear1 = nn.Linear(config.RestoreConfig.lstm_hidden, config.RestoreConfig.actor_hidden_size)
-        self.actor_linear2 = nn.Linear(config.RestoreConfig.actor_hidden_size, config.tool.tools_num)
+        if self.is_symbol('na'):
+            node_num = config.tool.tools_num + 1
+        elif self.is_symbol('sa'):
+            node_num = config.tool.tools_num + 3
+        else:
+            node_num = config.tool.tools_num
+        if self.is_symbol('nl'):
+            self.actor_linear1 = NoisyLinear(config.RestoreConfig.lstm_hidden, config.RestoreConfig.actor_hidden_size,
+                                             config.device, std_init=0.3)
+            self.actor_linear2 = NoisyLinear(config.RestoreConfig.actor_hidden_size, node_num,
+                                             config.device, std_init=0.3)
+        else:
+            self.actor_linear1 = nn.Linear(config.RestoreConfig.lstm_hidden, config.RestoreConfig.actor_hidden_size)
+            self.actor_linear2 = nn.Linear(config.RestoreConfig.actor_hidden_size, node_num)
 
     def feature_extract(self, imgs):
 
@@ -103,8 +116,17 @@ class Actor(Module):
         tools_weight = self.actor_linear2(
             F.relu(self.actor_linear1(out_fm))
         )
-        attention = F.softmax(tools_weight, dim=1)
-
+        if self.is_symbol('na'):
+            attention = F.softmax(tools_weight[:, :self.config.tool.tools_num], dim=1)
+            margin = torch.sigmoid(tools_weight[:, -1:])*2
+            attention = attention * margin
+        elif self.is_symbol('sa'):
+            attention_blur = F.softmax(tools_weight[:, 0:4], dim=1) * torch.sigmoid(tools_weight[:,12:13])*2/3.0
+            attention_gauss = F.softmax(tools_weight[:, 4:8], dim=1), * torch.sigmoid(tools_weight[:,13:14])*2/3.0
+            attention_jpg = F.softmax(tools_weight[:, 8:12], dim=1) * torch.sigmoid(tools_weight[:,14:15])*2/3.0
+            attention = torch.cat([attention_blur, attention_gauss, attention_jpg], dim=1)
+        else:
+            attention = F.softmax(tools_weight, dim=1)
         return attention, (h, c)
 
     def forward(self, imgs, hidden_state, last_action):
@@ -112,52 +134,8 @@ class Actor(Module):
 
         return self.policy_lstm(fm, hidden_state, last_action)
 
-
-class ActorNoAttention(Actor):
-    def __init__(self, config):
-        super(ActorNoAttention, self).__init__(config)
-        self.actor_linear2 = nn.Linear(config.RestoreConfig.actor_hidden_size, config.tool.tools_num+1)
-        self.config = config
-
-    def policy_lstm(self, fm, hidden_state, last_action):
-        h, c = hidden_state
-        fm = torch.cat([fm, last_action.detach()], dim=1)
-        fm = fm.unsqueeze(0)
-
-        if h is None:
-            out_fm, (h, c) = self.actor_lstm(fm)
+    def is_symbol(self, symbol):
+        if symbol in self.config.event_identification:
+            return True
         else:
-            out_fm, (h, c) = self.actor_lstm(fm, (h, c))
-
-        out_fm = out_fm.squeeze(dim=0)
-        tools_weight = self.actor_linear2(
-            F.relu(self.actor_linear1(out_fm))
-        )
-        attention = F.softmax(tools_weight[:, :self.config.tool.tools_num], dim=1)
-        margin = torch.sigmoid(tools_weight[:, -1:])*2
-        attention = attention * margin
-        return attention, (h, c)
-
-class ActorNoisy(Actor):
-    def __init__(self, config):
-        from common.layers import NoisyLinear
-        super(ActorNoisy, self).__init__(config)
-
-        self.actor_linear1 = NoisyLinear(config.RestoreConfig.lstm_hidden, config.RestoreConfig.actor_hidden_size,
-                                         config.device, std_init=0.3)
-        self.actor_linear2 = NoisyLinear(config.RestoreConfig.actor_hidden_size, config.tool.tools_num,
-                                         config.device, std_init=0.3)
-        self.config = config
-
-class ActorNoAttentionNoisy(ActorNoAttention):
-    def __init__(self, config):
-        from common.layers import NoisyLinear
-        super(ActorNoAttentionNoisy, self).__init__(config)
-
-        self.actor_linear1 = NoisyLinear(config.RestoreConfig.lstm_hidden, config.RestoreConfig.actor_hidden_size,
-                                         config.device, std_init=0.3)
-        self.actor_linear2 = NoisyLinear(config.RestoreConfig.actor_hidden_size, config.tool.tools_num+1,
-                                         config.device, std_init=0.3)
-        self.config = config
-
-
+            return False
