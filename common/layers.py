@@ -14,6 +14,10 @@ from torch.autograd import Variable
 
 
 class NoisyLinear(nn.Module):
+    """
+    Fortunato, M., Azar, M. G., Piot, B., Menick, J., Osband, I., Graves, A., … Legg, S. (2017).
+    Noisy Networks for Exploration, 1–21. Retrieved from http://arxiv.org/abs/1706.10295
+    """
     def __init__(self, in_features, out_features, device, std_init=0.4):
         super(NoisyLinear, self).__init__()
 
