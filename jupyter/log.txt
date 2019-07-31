@@ -1,0 +1,145 @@
+## naive
+### mild
+Final result:
+reward1: 2.8911, psnr1: 26.7271, total tested images: 3584
+reward2: 0.1215, psnr2: 26.8486, total tested images: 3584
+reward3: -0.1772, psnr3: 26.6714, total tested images: 3584
+Base psnr: 23.8360, Final psnr: 26.6714, Sum reward: 2.8354
+### moderate
+Final result:
+reward1: 2.8257, psnr1: 24.9292, total tested images: 3584
+reward2: 0.3090, psnr2: 25.2383, total tested images: 3584
+reward3: 0.0408, psnr3: 25.2791, total tested images: 3584
+Base psnr: 22.1036, Final psnr: 25.2791, Sum reward: 3.1755
+### severe
+Final result:
+reward1: 3.1130, psnr1: 23.4333, total tested images: 3584
+reward2: 0.4505, psnr2: 23.8838, total tested images: 3584
+reward3: 0.2129, psnr3: 24.0967, total tested images: 3584
+Base psnr: 20.3202, Final psnr: 24.0967, Sum reward: 3.7765
+## No attention
+### mild
+Final result:
+reward1: 2.9071, psnr1: 26.7431, total tested images: 3584
+reward2: 0.0881, psnr2: 26.8312, total tested images: 3584
+reward3: -0.1699, psnr3: 26.6613, total tested images: 3584
+Base psnr: 23.8360, Final psnr: 26.6613, Sum reward: 2.8253
+### moderate
+Final result:
+reward1: 2.8838, psnr1: 24.9873, total tested images: 3584
+reward2: 0.2670, psnr2: 25.2544, total tested images: 3584
+reward3: 0.0335, psnr3: 25.2879, total tested images: 3584
+Base psnr: 22.1036, Final psnr: 25.2879, Sum reward: 3.1843
+### severe
+reward1: 3.1851, psnr1: 23.5053, total tested images: 3584
+reward2: 0.4011, psnr2: 23.9064, total tested images: 3584
+reward3: 0.1947, psnr3: 24.1011, total tested images: 3584
+Base psnr: 20.3202, Final psnr: 24.1011, Sum reward: 3.7808
+## No attention, fine-tune
+### mild
+Final result:
+reward1: 2.6467, psnr1: 26.4827, total tested images: 3584
+reward2: -0.3160, psnr2: 26.1667, total tested images: 3584
+reward3: -0.5399, psnr3: 25.6268, total tested images: 3584
+Base psnr: 23.8360, Final psnr: 25.6268, Sum reward: 1.7908
+### moderate
+Final result:
+reward1: 2.7897, psnr1: 24.8933, total tested images: 3584
+reward2: 0.0169, psnr2: 24.9102, total tested images: 3584
+reward3: -0.2219, psnr3: 24.6884, total tested images: 3584
+Base psnr: 22.1036, Final psnr: 24.6884, Sum reward: 2.5848
+### severe
+Final result:
+reward1: 3.3283, psnr1: 23.6486, total tested images: 3584
+reward2: 0.3744, psnr2: 24.0229, total tested images: 3584
+reward3: 0.0454, psnr3: 24.0683, total tested images: 3584
+Base psnr: 20.3202, Final psnr: 24.0683, Sum reward: 3.7481
+## Noise layer
+### mild
+reward1: 2.9031, psnr1: 26.7391, total tested images: 3584
+reward2: 0.1194, psnr2: 26.8585, total tested images: 3584
+reward3: -0.1857, psnr3: 26.6728, total tested images: 3584
+Base psnr: 23.8360, Final psnr: 26.6728, Sum reward: 2.8368
+### moderate
+reward1: 2.8447, psnr1: 24.9483, total tested images: 3584
+reward2: 0.2957, psnr2: 25.2440, total tested images: 3584
+reward3: 0.0298, psnr3: 25.2738, total tested images: 3584
+Base psnr: 22.1036, Final psnr: 25.2738, Sum reward: 3.1702
+### severe
+reward1: 3.1411, psnr1: 23.4613, total tested images: 3584
+reward2: 0.4418, psnr2: 23.9031, total tested images: 3584
+reward3: 0.2057, psnr3: 24.1088, total tested images: 3584
+Base psnr: 20.3202, Final psnr: 24.1088, Sum reward: 3.7885
+## No attention, Noise layer
+### mild
+reward1: 2.8135, psnr1: 26.6495, total tested images: 3584
+reward2: 0.1221, psnr2: 26.7716, total tested images: 3584
+reward3: -0.1820, psnr3: 26.5896, total tested images: 3584
+Base psnr: 23.8360, Final psnr: 26.5896, Sum reward: 2.7536
+### moderate
+reward1: 2.9304, psnr1: 25.0340, total tested images: 3584
+reward2: 0.2492, psnr2: 25.2832, total tested images: 3584
+reward3: 0.0137, psnr3: 25.2969, total tested images: 3584
+Base psnr: 22.1036, Final psnr: 25.2969, Sum reward: 3.1933
+### severe
+reward1: 3.2905, psnr1: 23.6108, total tested images: 3584
+reward2: 0.3770, psnr2: 23.9878, total tested images: 3584
+reward3: 0.1808, psnr3: 24.1686, total tested images: 3584
+Base psnr: 20.3202, Final psnr: 24.1686, Sum reward: 3.8484
+## RL-Restore-My tool
+### mild
+This is the final result:
+reward1: 2.9986, psnr1: 26.8346, toal tested images: 3584
+reward2: 0.6279, psnr2: 27.4625, toal tested images: 3584
+reward3: 0.1282, psnr3: 27.5907, toal tested images: 3584
+base_psnr: 23.8360
+### moderate
+This is the final result:
+reward1: 3.0537, psnr1: 25.1573, toal tested images: 3584
+reward2: 0.5770, psnr2: 25.7343, toal tested images: 3584
+reward3: 0.2206, psnr3: 25.9549, toal tested images: 3584
+base_psnr: 22.1036
+### severe
+This is the final result:
+reward1: 3.4512, psnr1: 23.7714, toal tested images: 3584
+reward2: 0.7042, psnr2: 24.4756, toal tested images: 3584
+reward3: 0.2519, psnr3: 24.7275, toal tested images: 3584
+base_psnr: 20.3202
+## RL-Restore - my tools(trained)
+### mild
+This is the final result:
+reward1: 3.0088, psnr1: 26.8448, toal tested images: 3584
+reward2: 0.6133, psnr2: 27.4581, toal tested images: 3584
+reward3: 0.0892, psnr3: 27.5472, toal tested images: 3584
+base_psnr: 23.8360
+### moderate
+This is the final result:
+reward1: 3.1641, psnr1: 25.2677, toal tested images: 3584
+reward2: 0.6442, psnr2: 25.9120, toal tested images: 3584
+reward3: 0.1521, psnr3: 26.0640, toal tested images: 3584
+base_psnr: 22.1036
+### severe
+This is the final result:
+reward1: 3.3237, psnr1: 23.6439, toal tested images: 3584
+reward2: 0.9438, psnr2: 24.5877, toal tested images: 3584
+reward3: 0.1965, psnr3: 24.7842, toal tested images: 3584
+base_psnr: 20.3202
+## RL-Restore - official tools
+### mild
+This is the final result:
+reward1: 3.2798, psnr1: 27.1158, toal tested images: 3584
+reward2: 0.7854, psnr2: 27.9012, toal tested images: 3584
+reward3: 0.1315, psnr3: 28.0327, toal tested images: 3584
+base_psnr: 23.8360
+### moderate
+This is the final result:
+reward1: 3.3741, psnr1: 25.4777, toal tested images: 3584
+reward2: 0.7767, psnr2: 26.2544, toal tested images: 3584
+reward3: 0.1998, psnr3: 26.4542, toal tested images: 3584
+base_psnr: 22.1036
+### severe
+This is the final result:
+reward1: 3.6469, psnr1: 23.9671, toal tested images: 3584
+reward2: 0.9534, psnr2: 24.9205, toal tested images: 3584
+reward3: 0.2836, psnr3: 25.2041, toal tested images: 3584
+base_psnr: 20.3202
