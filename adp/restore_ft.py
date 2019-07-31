@@ -24,8 +24,9 @@ class ImageRestoreFt(ImageRestore):
                 torch.optim.lr_scheduler.ExponentialLR(
                     self.tools_opt[-1], gamma=config.RestoreConfig.tools_ft_lr_decay))
 
-    def update_model(self, states, rewards, values, imgs):
-        critic_loss, actor_loss = super(ImageRestoreFt, self).update_model(states, rewards, values, imgs)
+    def update_model(self, states, actions, rewards, values, imgs):
+        critic_loss, actor_loss = super(ImageRestoreFt, self).update_model(
+            states, actions, rewards, values, imgs)
         if not self.step % self.config.RestoreConfig.tools_ft_period == 0:
             return critic_loss, actor_loss
         tools_loss = self.tools_critic(imgs, self.imgs_gt)

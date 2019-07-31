@@ -113,4 +113,3 @@ def load_imgs(list_in, size = 63):
         imgs[k, ...] = cv2.imread(list_in[k]) / 255.
     imgs = imgs.transpose([0, 3, 1, 2])
     return imgs
-

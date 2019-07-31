@@ -193,11 +193,8 @@ def load_tools_tf2torch(tools_path, config):
         MainModel = imp.load_source('MainModel', os.path.join(tools_path, 'tool%02i.py' % (tool_id+1)))
         model_path = os.path.join(tools_path, 'tool%02i.pth' % (tool_id+1))
         model = torch.load(model_path)
-        if config.device.type == 'cuda':
-            model= torch.nn.DataParallel(model.cuda())
         model.eval()
         tools.append(model)
-
     return tools
 
 

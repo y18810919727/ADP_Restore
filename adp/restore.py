@@ -153,8 +153,8 @@ class ImageRestore(object):
         )
         entropy = torch.distributions.Categorical(
             torch.softmax(actions, dim=2)
-        ) if 'en' in self.config.event_identification else 0
-        return (rewards + self.config.RestoreConfig.gamma * next_values - entropy*0.05).mean()
+        ).entropy() if 'en' in self.config.event_identification else 0
+        return (rewards + self.config.RestoreConfig.gamma * next_values - entropy*0.1).mean()
 
     def cal_critic_loss(self, states, rewards, values):
         target_values = values[:, 1:].detach().clone()

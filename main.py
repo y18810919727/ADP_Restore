@@ -23,8 +23,6 @@ def main(config):
 
     if 'ft' in config.event_identification:
         from adp.restore_ft import ImageRestoreFt as ImageRestore
-    elif 'nl' in config.event_identification:
-        from adp.restore_nl import ImageRestoreNl as ImageRestore
     else:
         from adp.restore import ImageRestore
 
@@ -108,7 +106,6 @@ if __name__ == '__main__':
     parser.add_argument('--train_mode', type=int, default=0)
     #  tf2torch, 1: torch(training by ourself)
     parser.add_argument('--tool_type', type=str, default='torch', help='tf2torch or torch')
-
 
     parser.add_argument('--device', type=str, default='cuda', help='cuda or cpu')
     parser.add_argument('--gpu_id', type=list, default=[0, 1, 2, 3], help='Available gpu id')

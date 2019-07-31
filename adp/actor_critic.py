@@ -122,7 +122,7 @@ class Actor(Module):
             attention = attention * margin
         elif self.is_symbol('sa'):
             attention_blur = F.softmax(tools_weight[:, 0:4], dim=1) * torch.sigmoid(tools_weight[:,12:13])*2/3.0
-            attention_gauss = F.softmax(tools_weight[:, 4:8], dim=1), * torch.sigmoid(tools_weight[:,13:14])*2/3.0
+            attention_gauss = F.softmax(tools_weight[:, 4:8], dim=1) * torch.sigmoid(tools_weight[:,13:14])*2/3.0
             attention_jpg = F.softmax(tools_weight[:, 8:12], dim=1) * torch.sigmoid(tools_weight[:,14:15])*2/3.0
             attention = torch.cat([attention_blur, attention_gauss, attention_jpg], dim=1)
         else:
