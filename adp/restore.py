@@ -25,8 +25,8 @@ class ImageRestore(object):
         na ： No attention
 
         """
-        from adp.actor_critic import Actor, Critic
-
+        from adp.actor_critic import Critic
+        from adp.actor_critic import Actor
         print('Policy_class: ', Actor.__name__)
         print('Critic_class: ', Critic.__name__)
         self.config = config
@@ -36,8 +36,21 @@ class ImageRestore(object):
         self.episode = {}
         self.imgs_gt = None
         self.event_identification = 'ADP'+config.event_identification
+
         self.actor = Actor(config)
         self.critic = Critic(config)
+        self.actor.weight_init()
+        self.critic.weight_init()
+        #self.target_actor = None
+        self.target_critic = None
+        if 'dn' in config.event_identification:
+            #self.target_actor = Actor(config)
+            # for target_param, param in zip(self.target_actor.parameters(), self.actor.parameters()):
+            #     target_param.data.copy_(param.data)
+            self.target_critic = Critic(config)
+            for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
+                target_param.data.copy_(param.data)
+
         self.max_step = config.RestoreConfig.max_step
         self.train_batch_size = config.RestoreConfig.batch_size
         self.train_generator_index = (0, 0)
@@ -64,6 +77,9 @@ class ImageRestore(object):
 
         self.critic.to(config.device)
         self.actor.to(config.device)
+
+        if 'dn' in config.event_identification:
+            self.target_critic.to(config.device)
 
         for tool_index in range(self.config.tool.tools_num):
             self.tools[tool_index].to(config.device)
@@ -130,7 +146,7 @@ class ImageRestore(object):
         #endregion
 
         # region critic update
-        critic_loss = self.cal_critic_loss(states, rewards, values)
+        critic_loss = self.cal_critic_loss(states, actions, rewards, values)
         self.critic_opt.zero_grad()
         critic_loss.backward(retain_graph=True)
         self.critic_opt.step()
@@ -140,7 +156,7 @@ class ImageRestore(object):
     def cal_actor_loss(self, states, actions, rewards, values):
         """
 
-        :param states:
+        :param states: (stop_step+1) *  batch_size *  C*H*W
         :param actions: bs * step * tool_num
         :param rewards:
         :param values:
@@ -153,16 +169,47 @@ class ImageRestore(object):
         )
         entropy = torch.distributions.Categorical(
             torch.softmax(actions, dim=2)
-        ).entropy() if 'en' in self.config.event_identification else 0
+        ).entropy()
+        if 'en' not in self.config.event_identification:
+            entropy = entropy * 0
+
         return (rewards + self.config.RestoreConfig.gamma * next_values + entropy*0.1).mean()
 
-    def cal_critic_loss(self, states, rewards, values):
-        target_values = values[:, 1:].detach().clone()
-        target_values = torch.cat(
-            [target_values,
-             torch.zeros(self.inference_batch_size, 1).to(self.config.device)],
-            dim=1
-        )
+    def cal_critic_loss(self, states, actions, rewards, values):
+        """
+
+        :param states: (stop_step+1) *  batch_size *  C*H*W
+        :param actiosn: batch_size * stop_step * tool_num
+        :param rewards:
+        :param values: (batch_size * stop_step)
+        :return:
+        """
+        if 'dn' in self.event_identification:
+            hidden_state_value = None, None
+            self.inference_batch_size = values.shape[0]
+            target_values_list = []
+            for state_index in range(states.shape[0]):
+                if state_index == 0:
+                    continue
+                elif state_index == states.shape[0]-1:
+                    state = states[state_index]
+                    last_action = actions[:,state_index-1, :]
+                    step_target_values, hidden_state_value = self.target_critic(state, hidden_state_value, last_action)
+                    target_values_list.append(step_target_values.detach())
+                else:
+                    target_values_list.append(
+                        torch.zeros_like(target_values_list[-1]).to(self.config.device)
+                    )
+            target_values = torch.stack(target_values_list, dim=1).squeeze(dim=-1)  # (batch_size * stop_step)
+
+        else:
+            target_values = values[:, 1:].detach().clone()
+            target_values = torch.cat(
+                [target_values,
+                 torch.zeros(self.inference_batch_size, 1).to(self.config.device)],
+                dim=1
+            )
+
         target_values = rewards.detach() + self.config.RestoreConfig.gamma * target_values
         critic_loss = ((values - target_values)**2).mean()
         return critic_loss
@@ -243,7 +290,7 @@ class ImageRestore(object):
 
             actions = torch.stack(actions, dim=1)  # batch_size * stop_step * tool_num
 
-            critic_loss = self.cal_critic_loss(states, rewards, values)
+            critic_loss = self.cal_critic_loss(states, actions, rewards, values)
             avg_critic_loss += float(critic_loss.cpu().detach())
 
             # record average critic values

@@ -36,7 +36,7 @@ class RestoreConfig(object):
     del_smooth = True
 
     max_step = 100000
-    gamma = 0.95
+    gamma = 0.99
 
     # img feature extract
     img_fm_size = 24*4*4

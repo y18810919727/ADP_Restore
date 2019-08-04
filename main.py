@@ -23,8 +23,11 @@ def main(config):
 
     if 'ft' in config.event_identification:
         from adp.restore_ft import ImageRestoreFt as ImageRestore
+    elif 'nrl' in config.event_identification:
+        from adp.restore_nrl import ImageRestoreNrl as ImageRestore
     else:
         from adp.restore import ImageRestore
+
 
     print('Restorer Class:', ImageRestore.__name__)
     if config.tool_train_mode is 1:
@@ -48,8 +51,9 @@ def main(config):
         restorer.train_mode_set()
         restorer.train(train_img_generator, validation_img_generator)
     elif config.test_dataset in ['mild', 'moderate', 'severe', 'all']:
+        print('##', config.event_identification)
         def test_model_func():
-            print('Data set: ',config.test_dataset)
+            print('### ',config.test_dataset)
             restorer.eval_mode_set()
             data_in = util.pngs_dir_read(os.path.join(
                 config.test_dir, config.test_dataset+'_in')

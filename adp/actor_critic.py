@@ -14,6 +14,12 @@ from torch.nn import Module
 from common.layers import NoisyLinear
 
 
+def weight_init(module):
+    if isinstance(module, nn.Linear):
+        nn.init.xavier_uniform_(module.weight)
+        module.bias.data.zero_()
+
+
 class Critic(Module):
     def __init__(self, config):
         super(Critic, self).__init__()
@@ -55,6 +61,9 @@ class Critic(Module):
         out_fm = out_fm.squeeze(dim=0)
         value = self.critic_linear(out_fm)
         return value, (h, c)
+
+    def weight_init(self):
+        self.apply(weight_init)
 
     def forward(self, imgs, hidden_state, last_action):
         fm = self.feature_extract(imgs)
@@ -135,7 +144,69 @@ class Actor(Module):
         return self.policy_lstm(fm, hidden_state, last_action)
 
     def is_symbol(self, symbol):
-        if symbol in self.config.event_identification:
+        if symbol+"_" in self.config.event_identification or \
+                '_'+symbol in self.config.event_identification:
             return True
         else:
             return False
+
+    def weight_init(self):
+        self.apply(weight_init)
+
+
+class Attention(Actor, Module):
+    def __init__(self, config):
+        Module.__init__(self)
+        self.config = config
+
+        self.conv1 = nn.Conv2d(3, 32, 9, stride=2,padding=4)
+        self.conv2 = nn.Conv2d(32, 24, 5, stride=2, padding=2)
+        self.conv3 = nn.Conv2d(24, 24, 5, stride=2, padding=2)
+        self.conv4 = nn.Conv2d(24, 24, 5, stride=2, padding=2)
+
+
+        self.fm_linear = nn.Linear(config.RestoreConfig.img_fm_size,
+                                   config.RestoreConfig.feature_map_size)
+
+        if self.is_symbol('na'):
+            node_num = config.tool.tools_num + 1
+        elif self.is_symbol('sa'):
+            node_num = config.tool.tools_num + 3
+        else:
+            node_num = config.tool.tools_num
+
+        self.actor_linear1 = nn.Linear(config.RestoreConfig.feature_map_size, node_num)
+
+    def forward(self, imgs):
+
+        fm = self.feature_extract(imgs)
+        tools_weight = self.actor_linear1(fm)
+        if self.is_symbol('na'):
+            attention = F.softmax(tools_weight[:, :self.config.tool.tools_num], dim=1)
+            margin = torch.sigmoid(tools_weight[:, -1:])*2
+            attention = attention * margin
+        elif self.is_symbol('sa'):
+            attention_blur = F.softmax(tools_weight[:, 0:4], dim=1) * torch.sigmoid(tools_weight[:,12:13])*2/3.0
+            attention_gauss = F.softmax(tools_weight[:, 4:8], dim=1) * torch.sigmoid(tools_weight[:,13:14])*2/3.0
+            attention_jpg = F.softmax(tools_weight[:, 8:12], dim=1) * torch.sigmoid(tools_weight[:,14:15])*2/3.0
+            attention = torch.cat([attention_blur, attention_gauss, attention_jpg], dim=1)
+        else:
+            attention = F.softmax(tools_weight, dim=1)
+
+        return attention
+
+
+class ActorNrl(Actor, Module):
+    def __init__(self, config):
+        Module.__init__(self)
+        self.attention_modules = nn.ModuleList([Attention(config) for _ in range(3)])
+
+    def forward(self, imgs, hidden_state, last_action):
+        step, _ = hidden_state
+        step = 0 if step is None else step+1
+        attention = self.attention_modules[step](imgs)
+        return attention, (step, None)
+
+
+
+
