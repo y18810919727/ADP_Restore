@@ -92,8 +92,10 @@ class Actor(Module):
             node_num = config.tool.tools_num + 1
         elif self.is_symbol('sa'):
             node_num = config.tool.tools_num + 3
-        else:
+        elif self.is_symbol('at') or self.is_symbol('naive'):
             node_num = config.tool.tools_num
+        else:
+            raise ValueError('Please input policy type in config.event_identification. na/sa/at.')
         if self.is_symbol('nl'):
             self.actor_linear1 = NoisyLinear(config.RestoreConfig.lstm_hidden, config.RestoreConfig.actor_hidden_size,
                                              config.device, std_init=0.3)

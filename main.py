@@ -34,6 +34,8 @@ def main(config):
         tool_train(config)
         return
     else:
+        if 'tf' in config.event_identification:
+            config.tool_type = 'tf2torch'
         if config.tool_type == 'tf2torch':
             tools = load_tools_tf2torch(config.tools_tf2torch_dir, config)
         else:
@@ -118,7 +120,6 @@ if __name__ == '__main__':
         os.makedirs('./logs')
     config.device = torch.device(config.device if torch.cuda.is_available() else 'cpu')
     config = get_config(config)
-
     main(config)
 
 

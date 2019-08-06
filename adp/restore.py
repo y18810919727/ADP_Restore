@@ -23,6 +23,7 @@ class ImageRestore(object):
         naive ： original version
         nl ： add noise layer in policy net
         na ： No attention
+        at : attention naivie
 
         """
         from adp.actor_critic import Critic
@@ -172,6 +173,13 @@ class ImageRestore(object):
         ).entropy()
         if 'en' not in self.config.event_identification:
             entropy = entropy * 0
+        if 'dn' in self.config.event_identification:
+            for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
+                target_param.data.copy_(
+                    target_param.data * (1.0 - self.config.RestoreConfig.soft_tau) +
+                    param.data * self.config.RestoreConfig.soft_tau
+                )
+
 
         return (rewards + self.config.RestoreConfig.gamma * next_values + entropy*0.1).mean()
 
@@ -191,7 +199,7 @@ class ImageRestore(object):
             for state_index in range(states.shape[0]):
                 if state_index == 0:
                     continue
-                elif state_index == states.shape[0]-1:
+                elif state_index < states.shape[0]-1:
                     state = states[state_index]
                     last_action = actions[:,state_index-1, :]
                     step_target_values, hidden_state_value = self.target_critic(state, hidden_state_value, last_action)
@@ -287,8 +295,8 @@ class ImageRestore(object):
 
             rewards = torch.stack(rewards, dim=1)  # (batch_size * stop_step)
             values = torch.stack(values, dim=1).squeeze(dim=-1)  # (batch_size * stop_step)
-
             actions = torch.stack(actions, dim=1)  # batch_size * stop_step * tool_num
+            states = torch.stack(states, dim=0)  # (stop_step+1) *  batch_size *  C*H*W
 
             critic_loss = self.cal_critic_loss(states, actions, rewards, values)
             avg_critic_loss += float(critic_loss.cpu().detach())
