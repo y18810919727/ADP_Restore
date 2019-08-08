@@ -40,6 +40,10 @@ class ImageRestore(object):
 
         self.actor = Actor(config)
         self.critic = Critic(config)
+
+        self.actor.to(config.device)
+        self.critic.to(config.device)
+
         self.actor.weight_init()
         self.critic.weight_init()
         #self.target_actor = None
@@ -76,8 +80,6 @@ class ImageRestore(object):
         if self.train_mode >= 1:
             self.load()
 
-        self.critic.to(config.device)
-        self.actor.to(config.device)
 
         if 'dn' in config.event_identification:
             self.target_critic.to(config.device)
@@ -152,6 +154,13 @@ class ImageRestore(object):
         critic_loss.backward(retain_graph=True)
         self.critic_opt.step()
         # endregion
+
+        if 'dn' in self.config.event_identification:
+            for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
+                target_param.data.copy_(
+                    target_param.data * (1.0 - self.config.RestoreConfig.soft_tau) +
+                    param.data * self.config.RestoreConfig.soft_tau
+                )
         return critic_loss, actor_loss
 
     def cal_actor_loss(self, states, actions, rewards, values):
@@ -173,13 +182,6 @@ class ImageRestore(object):
         ).entropy()
         if 'en' not in self.config.event_identification:
             entropy = entropy * 0
-        if 'dn' in self.config.event_identification:
-            for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
-                target_param.data.copy_(
-                    target_param.data * (1.0 - self.config.RestoreConfig.soft_tau) +
-                    param.data * self.config.RestoreConfig.soft_tau
-                )
-
 
         return (rewards + self.config.RestoreConfig.gamma * next_values + entropy*0.1).mean()
 
@@ -187,8 +189,8 @@ class ImageRestore(object):
         """
 
         :param states: (stop_step+1) *  batch_size *  C*H*W
-        :param actiosn: batch_size * stop_step * tool_num
-        :param rewards:
+        :param actions: batch_size * stop_step * tool_num
+        :param rewards: batch_size * 3
         :param values: (batch_size * stop_step)
         :return:
         """
@@ -201,7 +203,7 @@ class ImageRestore(object):
                     continue
                 elif state_index < states.shape[0]-1:
                     state = states[state_index]
-                    last_action = actions[:,state_index-1, :]
+                    last_action = actions[:, state_index-1, :]
                     step_target_values, hidden_state_value = self.target_critic(state, hidden_state_value, last_action)
                     target_values_list.append(step_target_values.detach())
                 else:
@@ -218,7 +220,7 @@ class ImageRestore(object):
                 dim=1
             )
 
-        target_values = rewards.detach() + self.config.RestoreConfig.gamma * target_values
+        target_values = rewards.detach() + self.config.RestoreConfig.gamma * target_values.detach()
         critic_loss = ((values - target_values)**2).mean()
         return critic_loss
 

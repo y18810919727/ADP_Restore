@@ -35,7 +35,7 @@ class RestoreConfig(object):
     epoch = 10
     del_smooth = True
 
-    max_step = 100000
+    max_step = 50000
     gamma = 0.99
     soft_tau = 1e-2
 
