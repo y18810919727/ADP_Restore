@@ -36,7 +36,11 @@ class Critic(Module):
         self.critic_lstm = nn.LSTM(input_size=config.RestoreConfig.feature_map_size+config.tool.tools_num,
                                    hidden_size=config.RestoreConfig.lstm_hidden,
                                    )
-        self.critic_linear = nn.Linear(config.RestoreConfig.lstm_hidden, 1)
+        if self.is_symbol('dqn'):
+            self.critic_linear = nn.Linear(config.RestoreConfig.lstm_hidden, 12)
+        else:
+            self.critic_linear = nn.Linear(config.RestoreConfig.lstm_hidden, 1)
+
 
     def feature_extract(self, imgs):
 
@@ -69,6 +73,13 @@ class Critic(Module):
         fm = self.feature_extract(imgs)
 
         return self.value_lstm(fm, hidden_state, last_action=last_action)
+
+    def is_symbol(self, symbol):
+        if symbol+"_" in self.config.event_identification or \
+                '_'+symbol in self.config.event_identification:
+            return True
+        else:
+            return False
 
 
 class Actor(Module):
