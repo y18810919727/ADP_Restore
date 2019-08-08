@@ -111,7 +111,7 @@ if __name__ == '__main__':
     # 0: retrain, 1: test 2: train based on the last checkpoint
     parser.add_argument('--train_mode', type=int, default=0)
     #  tf2torch, 1: torch(training by ourself)
-    parser.add_argument('--tool_type', type=str, default='torch', help='tf2torch or torch')
+    parser.add_argument('--tool_type', type=str, default='tf2torch', help='tf2torch or torch')
 
     parser.add_argument('--device', type=str, default='cuda', help='cuda or cpu')
     parser.add_argument('--gpu_id', type=list, default=[0, 1, 2, 3], help='Available gpu id')
