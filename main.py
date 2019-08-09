@@ -25,6 +25,8 @@ def main(config):
         from adp.restore_ft import ImageRestoreFt as ImageRestore
     elif 'nrl' in config.event_identification:
         from adp.restore_nrl import ImageRestoreNrl as ImageRestore
+    elif 'dqn' in config.event_identification:
+        from adp.restore_dqn import ImageRestoredqn as ImageRestore
     else:
         from adp.restore import ImageRestore
 
