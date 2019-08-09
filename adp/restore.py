@@ -77,7 +77,11 @@ class ImageRestore(object):
 
         # endregion
 
-        if self.train_mode >= 1:
+        if self.train_mode == 1:
+            # test
+            self.load(load_best=True)
+        elif self.train_mode == 2:
+            # continue to train
             self.load()
 
 
@@ -363,8 +367,12 @@ class ImageRestore(object):
             for step_index in range(self.stop_step):
                 writer.add_image('img/%02iout%02i' % (img_id, step_index), imgs_out_cpu[step_index][img_id],
                                  self.step)
-        if self.step % self.config.RestoreConfig.save_period == 0 and sum_reward > self.max_reward_sum:
-            self.max_reward_sum = sum_reward
+        if self.step % self.config.RestoreConfig.save_period == 0:
+            best = True if sum_reward > self.max_reward_sum else False
+            if best:
+                self.max_reward_sum = sum_reward
+                self.save(save_best=True)
+
             self.save()
 
     # 目前还没用到
@@ -408,7 +416,8 @@ class ImageRestore(object):
         for tool in self.tools:
             tool.eval()
 
-    def save(self):
+    def save(self, save_best=False):
+
         state = {
             'critic': self.critic.state_dict(),
             'actor': self.actor.state_dict(),
@@ -428,10 +437,16 @@ class ImageRestore(object):
             tool = self.tools[tool_index]
             state['tool%i' % tool_index] = tool.module.state_dict() if type(tool) is torch.nn.DataParallel \
                 else tool.state_dict()
-        torch.save(state, os.path.join(self.config.restorer_save_dir, self.event_identification+'.pth'))
+        torch.save(state, os.path.join(self.config.restorer_save_dir,
+                                       self.event_identification + ('_best' if save_best else '')+'.pth'))
 
-    def load(self):
-        ckpt = torch.load(os.path.join(self.config.restorer_save_dir, self.event_identification+'.pth'))
+    def load(self, load_best=False):
+        # load best model during test
+        ckpt_path = os.path.join(self.config.restorer_save_dir,
+                                 self.event_identification + ('_best' if load_best else '')+'.pth')
+        if not os.path.exists(ckpt_path):
+            ckpt_path = os.path.join(self.config.restorer_save_dir, self.event_identification+'.pth')
+        ckpt = torch.load(ckpt_path)
         self.critic.load_state_dict(ckpt['critic'])
         self.actor.load_state_dict(ckpt['actor'])
         self.critic_opt.load_state_dict(ckpt['critic_opt'])
